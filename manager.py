@@ -12,9 +12,21 @@ from source import run as r
 import copy
 import numpy as np
 from pprint import pprint
+import sys
+import subprocess
 
 
 # compile with pyinstaller.exe --onefile --windowed  ftl_savegame_manager.py
+
+
+# Linux-compatible version of os.startfile
+# see here: https://stackoverflow.com/q/17317219
+def open_file(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
 
 
 class Gui:
@@ -377,10 +389,10 @@ class Gui:
         pass
 
     def open_saves_folder(self):
-        os.startfile(self.saves_db_path)
+        open_file(self.saves_db_path)
 
     def open_current_folder(self):
-        os.startfile(self.saves_new_path)
+        open_file(self.saves_new_path)
 
     def update_inventory(self):
         self.run_inventory.delete(*self.run_inventory.get_children())
