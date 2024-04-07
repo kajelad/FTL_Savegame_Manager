@@ -14,6 +14,7 @@ import numpy as np
 from pprint import pprint
 import sys
 import subprocess
+import re
 
 
 # compile with pyinstaller.exe --onefile --windowed  ftl_savegame_manager.py
@@ -260,6 +261,9 @@ class Gui:
                                     bg=self.button_color,
                                     command=self.save_file)
 
+        load_dir_button = tk.Button(self.menu_left, text="Open Run Directory", padx=10, pady=5, fg="white",
+                                        bg=self.button_color, command=self.load_dir)
+
         self.version_text = tk.StringVar()
         self.switch_version_button = tk.Button(self.menu_left, textvariable=self.version_text, padx=10, pady=5, fg="white",
                                           bg=self.button_color,
@@ -277,6 +281,7 @@ class Gui:
 
         load_save_button.pack(fill="x")
         save_run_button.pack(fill="x")
+        load_dir_button.pack(fill="x")
         open_saves_button.pack(fill="x")
         open_current_button.pack(fill="x")
 
@@ -501,7 +506,7 @@ class Gui:
         else:
             self.track_run_button.configure(bg="red")
 
-    def track_file(self):
+    def track_file(self, repeat=True, force_nosave=False):
         self.update_statusbar("")  # clear status bar
         if self.tracking:
             if os.path.exists(self.target_path) and not self.savegame.mv or os.path.exists(self.target_path_mv) and self.savegame.mv:
@@ -513,7 +518,7 @@ class Gui:
                     if self.savegame.run.total_beacons_explored < self.beacons or self.savegame.run.ship_name != self.ship_name:
                         foldername = "%s-%s" % (timestamp_str, self.savegame.run.ship_name)
                         self.folder_path = os.path.join(self.saves_new_path, foldername)
-                        if not os.path.exists(self.folder_path):
+                        if not os.path.exists(self.folder_path) and not force_nosave:
                             os.makedirs(self.folder_path)
                             self.update_statusbar("folder created")
                         if self.beacons != 999: # don't append if it's the first run since starting the program
@@ -528,9 +533,9 @@ class Gui:
                         str(self.beacons), self.savegame.run.sector, self.savegame.run.ship_name, timestamp_str)
                         new_path = os.path.join(self.folder_path, filename + self.filename_suffix)
                         self.latest_filepath = new_path
-                        if self.savegame.mv:
+                        if self.savegame.mv and not force_nosave:
                             shutil.copy(self.target_path_mv, new_path)
-                        else:
+                        elif not force_nosave:
                             shutil.copy(self.target_path, new_path)
                         self.update_statusbar(filename + " copied")
                         self.update_run_detail()
@@ -539,10 +544,11 @@ class Gui:
                     print("file is currently in use")
             self.update_all()
             print("running...")
-        self.root.after(self.update_frequency, self.track_file)
+        if repeat:
+            self.root.after(self.update_frequency, self.track_file)
 
     def save_file(self):
-        if not len(self.latest_filepath) == 0:
+        if not len(self.latest_filepath) == p0:
             fname = os.path.basename(self.latest_filepath)
             filename = filedialog.asksaveasfilename(initialdir=self.latest_filepath, initialfile=fname,
                                                     title="Select Save Location", defaultextension=".sav",
@@ -561,9 +567,10 @@ class Gui:
             self.update_statusbar("no file to save")
             print("no file to save")
 
-    def load_save(self):
-        filename = filedialog.askopenfilename(initialdir=self.saves_db_path, title="Select File",
-                                              filetypes=(("Save-Files", "*.sav"), ("all files", "*.*")))
+    def load_save(self, filename=None):
+        if filename is None:
+            filename = filedialog.askopenfilename(initialdir=self.saves_db_path, title="Select File",
+                                                  filetypes=(("Save-Files", "*.sav"), ("all files", "*.*")))
 
         if len(filename) == 0:
             self.update_statusbar("no file selected")
@@ -585,6 +592,36 @@ class Gui:
                 self.update_statusbar("Unable to copy latest save")
                 print("Unable to copy latest save")
 
+    def load_dir(self):
+        dirname = filedialog.askdirectory(initialdir=self.saves_db_path, title="Select Run Directory")
+
+        if len(dirname) == 0:
+            self.update_statusbar("no directory selected")
+            print("no directory selected")
+        else:
+            try:
+                for filename in sorted(os.listdir(dirname), key=lambda s: int(re.split("\D", s)[0])):
+                    print(filename)
+                    if filename[-len(self.filename_suffix):] != self.filename_suffix:
+                        continue
+                    self.load_save(filename=os.path.join(dirname, filename))
+                    if not self.tracking:
+                        self.toggle_tracking()
+                    self.track_file(repeat=False, force_nosave=True)
+                    
+            except Exception:
+                print(dirname)
+                self.update_statusbar("Unable to load directory")
+                print("Unable to load directory")
+        new_dirname = os.path.join(self.saves_new_path,os.path.split(dirname)[1])
+        print(dirname)
+        print(new_dirname)
+        if not os.path.samefile(os.path.split(dirname)[0], self.saves_new_path):
+            self.update_statusbar("Loaded directory not contained in current folder. Copy created in current folder.")
+            shutil.copytree(dirname, new_dirname)
+        self.folder_path = new_dirname
+
+
     def toggle_tracking(self):
         self.tracking = not self.tracking
         self.change_color()
@@ -596,3 +633,4 @@ class Gui:
 
     def loop(self):
         self.root.mainloop()
+
