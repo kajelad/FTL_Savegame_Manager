@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from tkinter import ttk
 from tkinter import messagebox
 import os
@@ -264,6 +264,9 @@ class Gui:
         load_dir_button = tk.Button(self.menu_left, text="Load Directory", padx=10, pady=5, fg="white",
                                         bg=self.button_color, command=self.load_dir)
 
+        save_stats_button = tk.Button(self.menu_left, text="Save Stats", padx=10, pady=5, fg="white",
+                                        bg=self.button_color, command=self.save_stats)
+
         self.version_text = tk.StringVar()
         self.switch_version_button = tk.Button(self.menu_left, textvariable=self.version_text, padx=10, pady=5, fg="white",
                                           bg=self.button_color,
@@ -282,6 +285,7 @@ class Gui:
         load_save_button.pack(fill="x")
         save_run_button.pack(fill="x")
         load_dir_button.pack(fill="x")
+        save_stats_button.pack(fill="x")
         open_saves_button.pack(fill="x")
         open_current_button.pack(fill="x")
 
@@ -429,7 +433,7 @@ class Gui:
         # gap between left canvas edge and y axis
         x_gap = 20
 
-        print(self.savegame.run.sector_scrap)
+        print("sector scrap:", self.savegame.run.sector_scrap)
 
         for x, y in enumerate(self.savegame.run.sector_scrap):
             # calculate rectangle coordinates (integers) for each bar
@@ -593,14 +597,14 @@ class Gui:
                 print("Unable to copy latest save")
 
     def load_dir(self):
-        dirname = filedialog.askdirectory(initialdir=self.saves_db_path, title="Enter Run Directory")
+        dirname = filedialog.askdirectory(initialdir=self.saves_new_path, title="Enter Run Directory")
 
         if len(dirname) == 0:
             self.update_statusbar("no directory selected")
             print("no directory selected")
         else:
             try:
-                for filename in sorted(os.listdir(dirname), key=lambda s: int(re.split("\D", s)[0])):
+                for filename in sorted(os.listdir(dirname), key=lambda s: int("0"+re.split("\D", s)[0])):
                     print(filename)
                     if filename[-len(self.filename_suffix):] != self.filename_suffix:
                         continue
@@ -609,18 +613,41 @@ class Gui:
                         self.toggle_tracking()
                     self.track_file(repeat=False, force_nosave=True)
                     
-            except Exception:
+            except Exception as exc:
                 print(dirname)
                 self.update_statusbar("Unable to load directory")
-                print("Unable to load directory")
+                print("Unable to load directory", exc)
         new_dirname = os.path.join(self.saves_new_path,os.path.split(dirname)[1])
         print(dirname)
         print(new_dirname)
         if not os.path.samefile(os.path.split(dirname)[0], self.saves_new_path):
+            print("one:", os.path.split(dirname)[0])
+            print("two:", self.saves_new_path)
             self.update_statusbar("Loaded directory not contained in current folder. Copy created in current folder.")
             shutil.copytree(dirname, new_dirname)
         self.folder_path = new_dirname
 
+    def save_stats(self):
+        is_win = tk.messagebox.askquestion(title="Win/Loss", message="The savegame manager cannot determine if this run was a win or a loss. Did you win this run? (Be honest.)") == 'yes'
+        print(is_win)
+        with open (os.path.join(self.folder_path, "runstats.csv"), "w") as run_stats_file:
+            run_stats_file.write('Ship'            +','+str(self.savegame.run.blueprint_name)        +'\n')
+            run_stats_file.write('Ship Name'       +','+str(self.savegame.run.ship_name)             +'\n')
+            run_stats_file.write('Difficulty'      +','+str(self.savegame.run.difficulty)            +'\n')
+            run_stats_file.write('Beacons'         +','+str(self.savegame.run.total_beacons_explored)+'\n')
+            run_stats_file.write('Scrap collected' +','+str(self.savegame.run.total_scrap_collected) +'\n')
+            run_stats_file.write('Free Stuff Scrap'+','+str(self.savegame.run.sector_scrap_total)    +'\n')
+            run_stats_file.write('Ships defeated'  +','+str(self.savegame.run.total_ships_defeated)  +'\n')
+            run_stats_file.write('Outcome'         +','+('win' if is_win else 'loss')                +'\n')
+        with open(os.path.join(self.folder_path, "sectorstats.csv"), "w") as sector_stats_file:
+            sector_stats_file.write('Sector'    +','+','.join(map(str, range(1, len(self.savegame.run.sector_scrap)+1)))+'\n')
+            sector_stats_file.write('Scrap'     +','+','.join(map(str, self.savegame.run.sector_scrap))                 +'\n')
+            sector_stats_file.write('Item Value'+','+','.join(map(str, self.savegame.run.sector_scrap_stuff))           +'\n')
+        with open(os.path.join(self.folder_path, "itemstats.csv"), "w") as item_stats_file:
+            item_stats_file.write('Item Name'      +','+','.join(map(str, (item["name"  ] for item in self.savegame.run.inventory)))+'\n')
+            item_stats_file.write('Sector Acquired'+','+','.join(map(str, (item["sector"] for item in self.savegame.run.inventory)))+'\n')
+            item_stats_file.write('Origin'         +','+','.join(map(str, (item["origin"] for item in self.savegame.run.inventory)))+'\n')
+            item_stats_file.write('Status'         +','+','.join(map(str, (item["status"] for item in self.savegame.run.inventory)))+'\n')
 
     def toggle_tracking(self):
         self.tracking = not self.tracking
