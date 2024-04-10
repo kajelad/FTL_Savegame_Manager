@@ -261,7 +261,7 @@ class Gui:
                                     bg=self.button_color,
                                     command=self.save_file)
 
-        load_dir_button = tk.Button(self.menu_left, text="Open Run Directory", padx=10, pady=5, fg="white",
+        load_dir_button = tk.Button(self.menu_left, text="Load Directory", padx=10, pady=5, fg="white",
                                         bg=self.button_color, command=self.load_dir)
 
         self.version_text = tk.StringVar()
@@ -593,7 +593,7 @@ class Gui:
                 print("Unable to copy latest save")
 
     def load_dir(self):
-        dirname = filedialog.askdirectory(initialdir=self.saves_db_path, title="Select Run Directory")
+        dirname = filedialog.askdirectory(initialdir=self.saves_db_path, title="Enter Run Directory")
 
         if len(dirname) == 0:
             self.update_statusbar("no directory selected")
