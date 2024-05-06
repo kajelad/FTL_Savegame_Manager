@@ -35,7 +35,10 @@ class Run:
         self.sector_scrap_total = 0
         self.sector_scrap = [0, 0, 0, 0, 0, 0, 0, 0]
         self.sector_scrap_stuff = [0, 0, 0, 0, 0, 0, 0, 0]
+        self.sector_types = [None, None, None, None, None, None, None, None]
         self.scrap_diff = 0  # used to calculate scrap per sector
+        self.sector_ships_defeated = [0, 0, 0, 0, 0, 0, 0, 0]
+        self.ship_diff = 0 # used to calculate ships per sector
         self.sector_diff = 1  # used to calculate scrap per sector
         self.inventory = []
         self.inventory_raw = []
@@ -68,12 +71,14 @@ class Run:
         if self.sector != self.sector_diff:
             self.sector_diff = self.sector
             self.scrap_diff = self.total_scrap_collected
+            self.ship_diff = self.total_ships_defeated
             # new sector so reset bought items
             self.bought_items = []
             self.last_bought_items = []
 
         if 0 <= self.sector <= 8:
             self.sector_scrap[self.sector - 1] = self.total_scrap_collected - self.scrap_diff
+            self.sector_ships_defeated[self.sector - 1] = self.total_ships_defeated - self.ship_diff
 
         ship = self.convert_ship_name(self.blueprint_name)
         self.ship_class = ship["ship_class"]

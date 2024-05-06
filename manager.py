@@ -458,6 +458,7 @@ class Gui:
             self.canvas_area_graph.create_rectangle(x0, y0, x1, y1, fill="blue")
             # put the y value above each bar
             self.canvas_area_graph.create_text(x0+2, y0, anchor=tk.SW, text=str(y))
+            self.canvas_area_graph.create_text(x1, y1, anchor=tk.NE, text=str(self.savegame.run.sector_ships_defeated[x]))
 
 
     def update_run_overview(self):
@@ -640,9 +641,10 @@ class Gui:
             run_stats_file.write('Ships defeated'  +','+str(self.savegame.run.total_ships_defeated)  +'\n')
             run_stats_file.write('Outcome'         +','+('win' if is_win else 'loss')                +'\n')
         with open(os.path.join(self.folder_path, "sectorstats.csv"), "w") as sector_stats_file:
-            sector_stats_file.write('Sector'    +','+','.join(map(str, range(1, len(self.savegame.run.sector_scrap)+1)))+'\n')
-            sector_stats_file.write('Scrap'     +','+','.join(map(str, self.savegame.run.sector_scrap))                 +'\n')
-            sector_stats_file.write('Item Value'+','+','.join(map(str, self.savegame.run.sector_scrap_stuff))           +'\n')
+            sector_stats_file.write('Sector'        +','+','.join(map(str, range(1, len(self.savegame.run.sector_scrap)+1)))+'\n')
+            sector_stats_file.write('Scrap'         +','+','.join(map(str, self.savegame.run.sector_scrap))                 +'\n')
+            sector_stats_file.write('Item Value    '+','+','.join(map(str, self.savegame.run.sector_scrap_stuff))           +'\n')
+            sector_stats_file.write('Ships Defeated'+','+','.join(map(str, self.savegame.run.sector_ships_defeated))        +'\n')
         with open(os.path.join(self.folder_path, "itemstats.csv"), "w") as item_stats_file:
             item_stats_file.write('Item Name'      +','+','.join(map(str, (item["name"  ] for item in self.savegame.run.inventory)))+'\n')
             item_stats_file.write('Sector Acquired'+','+','.join(map(str, (item["sector"] for item in self.savegame.run.inventory)))+'\n')
